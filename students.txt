@@ -1,0 +1,4 @@
+Richard 1
+Boris 0.55
+Almaz 0.55
+Johnatan 0
