@@ -6,7 +6,11 @@
 #include <cstdlib>
 #include <cmath>
 
-using namespace std;
+using std::vector;
+using std::cout;
+using std::string;
+using std::ifstream;
+using std::endl;
 
 class Task {
 private:
