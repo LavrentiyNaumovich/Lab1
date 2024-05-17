@@ -10,6 +10,8 @@ using std::vector;
 using std::cout;
 using std::string;
 using std::ifstream;
+using std::pair;
+using std::make_pair;
 using std::endl;
 
 class Task {
@@ -48,8 +50,8 @@ public:
         return name;
     }
 
-    virtual int solveTask(const Task& task) const {
-        return 0; 
+    virtual pair<int, vector<double>> solveTask(const Task& task) const {
+        return make_pair(0, vector<double>());
     }
 };
 
@@ -57,23 +59,40 @@ class Good : public Student {
 public:
     Good(const string& _name, double _ability) : Student(_name, _ability) {}
 
-    int solveTask(const Task& task) const override {
-        return 1; 
+    pair<int, vector<double>> solveTask(const Task& task) const override {
+        double D = task.getB() * task.getB() - 4 * task.getA() * task.getC();
+        vector<double> roots;
+        if (D < 0) {
+            return make_pair(0, roots);
+        }
+        else if (D == 0) {
+            double root = -task.getB() / (2 * task.getA());
+            roots.push_back(root);
+            return make_pair(1, roots);
+        }
+        else {
+            double root1 = (-task.getB() + sqrt(D)) / (2 * task.getA());
+            double root2 = (-task.getB() - sqrt(D)) / (2 * task.getA());
+            roots.push_back(root1);
+            roots.push_back(root2);
+            return make_pair(2, roots);
+        }
     }
 };
 
 class Average : public Student {
 public:
     Average(const string& _name, double _ability) : Student(_name, _ability) {}
-
-   
-    int solveTask(const Task& task) const override {
+    pair<int, vector<double>> solveTask(const Task& task) const override {
         double chance = static_cast<double>(rand()) / RAND_MAX;
         double ability = getAbility();
         if (chance <= ability) {
-            return 1; 
+            Good solve(getName(), ability);
+            return solve.solveTask(task);
         }
-        return 0; 
+        else {
+            return make_pair(0, vector<double>());
+        }
     }
 };
 
@@ -81,15 +100,14 @@ class Bad : public Student {
 public:
     Bad(const string& _name, double _ability) : Student(_name, _ability) {}
 
-    
-    int solveTask(const Task& task) const override {
-        return 0; 
+    pair<int, vector<double>> solveTask(const Task& task) const override {
+        return make_pair(1, vector<double>(1, 0.0));
     }
 };
 
 class Teacher {
 private:
-    vector<Student*> students; 
+    vector<Student*> students;
     vector<Task> tasks;
 
 public:
@@ -104,47 +122,42 @@ public:
     void checkTasks() {
         for (const Task& task : tasks) {
             cout << "Checking task with coefficients: " << task.getA() << " " << task.getB() << " " << task.getC() << endl;
-            for (const Student* student : students) { 
-                int solvedTasks = student->solveTask(task);
-                cout << "Student: " << student->getName();
-                if (solvedTasks > 0) {
-                    double D = task.getB() * task.getB() - 4 * task.getA() * task.getC();
-                    if (D < 0) {
-                        cout << ", No  roots" << endl;
-                    }
-                    else if (D == 0) {
-                        double root = -task.getB() / (2 * task.getA());
-                        cout << ", Root: " << root << endl;
-                    }
-                    else {
-                        double root1 = (-task.getB() + sqrt(D)) / (2 * task.getA());
-                        double root2 = (-task.getB() - sqrt(D)) / (2 * task.getA());
-                        cout << ", Roots: " << root1 << ", " << root2 << endl;
-                    }
+            for (const Student* student : students) {
+                pair<int, vector<double>> solution = student->solveTask(task);
+                cout << student->getName() << ", Roots: ";
+                if (solution.first == 0) {
+                    cout << "No roots" << endl;
                 }
-                else {
-                    cout << ", Root: 0" << endl;
+                else if (solution.first == 1) {
+                    cout << solution.second[0] << endl;
+                }
+                else if (solution.first == 2) {
+                    cout << solution.second[0] << ", " << solution.second[1] << endl;
                 }
             }
         }
     }
-
     void printProgress() const {
         cout << "Progress:" << endl;
-        for (const Student* student : students) { 
-            cout << "Student: " << student->getName();
+        for (const Student* student : students) {
+            cout << student->getName();
             int solvedTasks = 0;
             for (const Task& task : tasks) {
-                solvedTasks += student->solveTask(task); 
+                pair<int, vector<double>> solution = student->solveTask(task);
+                Good* solver = new Good("", 1);
+                pair<int, vector<double>> accurate = solver->solveTask(task);
+                if (solution == accurate) {
+                    solvedTasks++;
+                }
+                delete solver;
             }
             cout << ", Number of solved tasks: " << solvedTasks << endl;
         }
     }
 
-   
     ~Teacher() {
         for (Student* student : students) {
-            delete student; 
+            delete student;
         }
     }
 };
@@ -178,12 +191,9 @@ int main() {
 
     Teacher teacher;
 
-
     loadStudents("students.txt", teacher);
     loadTasks("equations.txt", teacher);
-
     teacher.checkTasks();
     teacher.printProgress();
-
     return 0;
-}
+} 
