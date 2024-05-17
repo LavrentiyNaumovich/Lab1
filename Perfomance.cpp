@@ -87,8 +87,9 @@ public:
         double chance = static_cast<double>(rand()) / RAND_MAX;
         double ability = getAbility();
         if (chance <= ability) {
-            Good solve(getName(), ability);
-            return solve.solveTask(task);
+            Good* solver = new Good(getName(), ability);
+            pair<int, vector<double>> numEnRoots = solver->solveTask(task);
+            return numEnRoots;
         }
         else {
             return make_pair(0, vector<double>());
@@ -109,7 +110,7 @@ class Teacher {
 private:
     vector<Student*> students;
     vector<Task> tasks;
-
+    vector<int> solvedTasks;
 public:
     void addStudent(Student* student) {
         students.push_back(student);
@@ -120,38 +121,28 @@ public:
     }
 
     void checkTasks() {
+        solvedTasks.resize(students.size());
         for (const Task& task : tasks) {
-            cout << "Checking task with coefficients: " << task.getA() << " " << task.getB() << " " << task.getC() << endl;
-            for (const Student* student : students) {
-                pair<int, vector<double>> solution = student->solveTask(task);
-                cout << student->getName() << ", Roots: ";
-                if (solution.first == 0) {
-                    cout << "No roots" << endl;
-                }
-                else if (solution.first == 1) {
-                    cout << solution.second[0] << endl;
-                }
-                else if (solution.first == 2) {
-                    cout << solution.second[0] << ", " << solution.second[1] << endl;
-                }
-            }
-        }
-    }
-    void printProgress() const {
-        cout << "Progress:" << endl;
-        for (const Student* student : students) {
-            cout << student->getName();
-            int solvedTasks = 0;
-            for (const Task& task : tasks) {
+            for (int i = 0; i < students.size(); i++) {
+                const Student* student = students[i];
                 pair<int, vector<double>> solution = student->solveTask(task);
                 Good* solver = new Good("", 1);
                 pair<int, vector<double>> accurate = solver->solveTask(task);
-                if (solution == accurate) {
-                    solvedTasks++;
+                    if (solution == accurate) {
+                    solvedTasks[i]++;
                 }
                 delete solver;
             }
-            cout << ", Number of solved tasks: " << solvedTasks << endl;
+            }
+        }
+    
+    void printProgress() const {
+        cout << "Progress:" << endl;
+        for (int i = 0; i < students.size(); i++) {
+            const Student* student = students[i];
+            cout << student->getName();
+            cout << ", Number of solved tasks: " << solvedTasks[i] << endl;
+
         }
     }
 
@@ -161,6 +152,8 @@ public:
         }
     }
 };
+
+    
 
 void loadStudents(const string& filename, Teacher& teacher) {
     ifstream studentFile(filename);
@@ -193,7 +186,9 @@ int main() {
 
     loadStudents("students.txt", teacher);
     loadTasks("equations.txt", teacher);
+
     teacher.checkTasks();
     teacher.printProgress();
+
     return 0;
 } 
